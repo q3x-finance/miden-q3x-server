@@ -6,8 +6,8 @@ import { json, urlencoded } from 'body-parser';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { SwaggerTheme } from 'swagger-themes';
 
-import * as session from 'express-session';
-import * as cookieParser from 'cookie-parser';
+import session from 'express-session';
+import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { APP } from './common/constants';
 import { AppConfigService } from './common/config/services/config.service';

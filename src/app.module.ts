@@ -17,6 +17,9 @@ import {
   serverConfig,
 } from './common/config';
 import { ReferralModule } from './modules/referral/referral.module';
+import { TransactionsModule } from './modules/transactions/transactions.module';
+import { AddressBookModule } from './modules/address-book/address-book.module';
+import { RequestPaymentModule } from './modules/request-payment/request-payment.module';
 
 @Module({
   imports: [
@@ -37,8 +40,11 @@ import { ReferralModule } from './modules/referral/referral.module';
     ScheduleModule.forRoot(),
     HealthModule,
     DatabaseModule,
-    AuthModule,
-    ReferralModule,
+    // AuthModule,
+    // ReferralModule,
+    TransactionsModule,
+    AddressBookModule,
+    RequestPaymentModule,
   ],
   controllers: [AppController],
   providers: [
