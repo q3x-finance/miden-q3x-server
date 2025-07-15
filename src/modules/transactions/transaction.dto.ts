@@ -3,6 +3,7 @@ import {
   IsBoolean,
   IsDateString,
   IsEnum,
+  IsIn,
   IsNumber,
   IsOptional,
   IsString,
@@ -64,4 +65,26 @@ export class SendTransactionDto {
   @ApiProperty({ example: NoteType.P2ID })
   @IsEnum(NoteType)
   noteType: NoteType;
+}
+
+export class RecallItem {
+  @IsIn(['transaction', 'gift'])
+  type: 'transaction' | 'gift';
+
+  @IsOptional()
+  @IsNumber()
+  id: number;
+}
+
+export class RecallRequestDto {
+  @ApiProperty({
+    example: [
+      { type: 'transaction', id: 1 },
+      { type: 'gift', id: 1 },
+    ],
+  })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => RecallItem)
+  items: RecallItem[];
 }

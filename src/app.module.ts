@@ -20,6 +20,7 @@ import { ReferralModule } from './modules/referral/referral.module';
 import { TransactionsModule } from './modules/transactions/transactions.module';
 import { AddressBookModule } from './modules/address-book/address-book.module';
 import { RequestPaymentModule } from './modules/request-payment/request-payment.module';
+import { GiftModule } from './modules/gift/gift.module';
 
 @Module({
   imports: [
@@ -45,6 +46,7 @@ import { RequestPaymentModule } from './modules/request-payment/request-payment.
     TransactionsModule,
     AddressBookModule,
     RequestPaymentModule,
+    GiftModule,
   ],
   controllers: [AppController],
   providers: [

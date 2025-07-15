@@ -9,4 +9,5 @@ export default registerAs('others', () => ({
   referralCodeMaximumUsage: process.env.REFERRAL_CODE_MAXIMUM_USAGE,
   defaultRole: process.env.DEFAULT_ROLE,
   require2FA: process.env.REQUIRE_2FA === 'true' ? true : false,
+  giftRecallableAfter: process.env.GIFT_RECALLABLE_AFTER,
 }));

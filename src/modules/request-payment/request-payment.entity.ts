@@ -10,10 +10,10 @@ export enum RequestPaymentStatus {
 @Entity({ name: 'request_payment' })
 export class RequestPaymentEntity extends BaseEntity {
   @Column({ type: 'varchar' })
-  payerAddress: string;
+  payer: string;
 
   @Column({ type: 'varchar' })
-  payeeAddress: string;
+  payee: string;
 
   @Column({ type: 'varchar' })
   amount: string;

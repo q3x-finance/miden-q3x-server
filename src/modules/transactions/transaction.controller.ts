@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Post, Query, Put } from '@nestjs/common';
 import { TransactionService } from './transaction.service';
-import { SendTransactionDto } from './transaction.dto';
+import { SendTransactionDto, RecallRequestDto } from './transaction.dto';
 import {
   ApiBody,
   ApiOperation,
@@ -83,23 +83,11 @@ export class TransactionController {
   // **************** PUT METHODS *******************
   // *************************************************
   @Put('/recall')
-  @ApiOperation({
-    summary: 'Recall transactions',
-    description: 'Recall transactions',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Transactions recalled successfully',
-  })
-  @ApiBody({
-    type: String,
-    isArray: true,
-    examples: {
-      example1: { value: ['1', '2'] },
-    },
-  })
-  async recallTransactions(@Body() transactionIds: string[]) {
-    return this.transactionService.recallTransactions(transactionIds);
+  @ApiOperation({ summary: 'Recall multiple transactions and gifts' })
+  @ApiResponse({ status: 200, description: 'Batch recall result' })
+  @ApiBody({ type: RecallRequestDto })
+  async recallBatch(@Body() dto: RecallRequestDto) {
+    return this.transactionService.recallBatch(dto);
   }
 
   @Put('/consume')

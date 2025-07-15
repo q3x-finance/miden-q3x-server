@@ -16,3 +16,7 @@ export enum ErrorRequestPayment {
   NOT_FOUND = 'Request payment not found',
   NOT_PENDING = 'Request payment is not pending',
 }
+
+export enum ErrorGift {
+  GiftNotFound = 'Gift not found',
+}

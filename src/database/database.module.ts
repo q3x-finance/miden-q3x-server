@@ -12,6 +12,7 @@ import { ReferralCodeEntity } from '../modules/referral/referral.entity';
 import { TransactionEntity } from 'src/modules/transactions/transaction.entity';
 import { AddressBookEntity } from 'src/modules/address-book/address-book.entity';
 import { RequestPaymentEntity } from 'src/modules/request-payment/request-payment.entity';
+import { GiftEntity } from 'src/modules/gift/gift.entity';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { RequestPaymentEntity } from 'src/modules/request-payment/request-paymen
             TransactionEntity,
             AddressBookEntity,
             RequestPaymentEntity,
+            GiftEntity,
           ],
           // We are using migrations, synchronize should be set to false.
           synchronize: false,

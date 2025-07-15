@@ -47,6 +47,7 @@ export interface OthersConfig {
   referralCodeMaximumUsage: number;
   defaultRole: string;
   require2FA: boolean;
+  giftRecallableAfter: number;
 }
 
 // @notice

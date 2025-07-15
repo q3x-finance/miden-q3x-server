@@ -7,7 +7,7 @@ export class TransactionMigrationsts1752488386249
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`
-            CREATE TYPE "public"."transactions_note_type_enum" AS ENUM('p2id', 'p2idr')
+            CREATE TYPE "public"."transactions_note_type_enum" AS ENUM('p2id', 'p2idr', 'gift')
         `);
     await queryRunner.query(`
             CREATE TYPE "public"."transactions_status_enum" AS ENUM('pending', 'recalled', 'consumed')

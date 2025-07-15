@@ -9,7 +9,7 @@ export class CreateRequestPaymentDto {
   })
   @IsNotEmpty()
   @IsString()
-  payerAddress: string;
+  payer: string;
 
   @ApiProperty({
     description: 'The address of the payee',
@@ -17,7 +17,7 @@ export class CreateRequestPaymentDto {
   })
   @IsNotEmpty()
   @IsString()
-  payeeAddress: string;
+  payee: string;
 
   @ApiProperty({
     description: 'The amount of the request',

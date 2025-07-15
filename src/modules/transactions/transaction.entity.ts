@@ -1,12 +1,6 @@
 import { Column, Entity } from 'typeorm';
 import { BaseEntity } from '../../database/base.entity';
-import { NoteType } from 'src/common/enums/note';
-
-export enum TransactionStatus {
-  PENDING = 'pending',
-  RECALLED = 'recalled',
-  CONSUMED = 'consumed',
-}
+import { NoteStatus, NoteType } from 'src/common/enums/note';
 
 @Entity({ name: 'transactions' })
 export class TransactionEntity extends BaseEntity {
@@ -19,10 +13,10 @@ export class TransactionEntity extends BaseEntity {
   @Column({ type: 'jsonb' })
   public assets: { faucetId: string; amount: string }[];
 
-  @Column({ type: 'boolean', default: false })
+  @Column({ type: 'boolean', default: true })
   public private: boolean;
 
-  @Column({ type: 'boolean', default: false })
+  @Column({ type: 'boolean', default: true })
   public recallable: boolean;
 
   @Column({ type: 'timestamp', nullable: true })
@@ -36,8 +30,8 @@ export class TransactionEntity extends BaseEntity {
 
   @Column({
     type: 'enum',
-    enum: TransactionStatus,
-    default: TransactionStatus.PENDING,
+    enum: NoteStatus,
+    default: NoteStatus.PENDING,
   })
-  public status: TransactionStatus;
+  public status: NoteStatus;
 }

@@ -1,16 +1,21 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { TransactionRepository } from './transaction.repository';
-import { TransactionEntity, TransactionStatus } from './transaction.entity';
-import { SendTransactionDto } from './transaction.dto';
+import { TransactionEntity } from './transaction.entity';
+import { SendTransactionDto, RecallRequestDto } from './transaction.dto';
 import { ErrorTransaction } from 'src/common/enums/errors';
 import { handleError } from 'src/common/utils/errors';
 import { In } from 'typeorm';
+import { GiftService } from '../gift/gift.service';
+import { NoteStatus } from 'src/common/enums/note';
 
 @Injectable()
 export class TransactionService {
   private readonly logger = new Logger(TransactionService.name);
 
-  constructor(private readonly transactionRepository: TransactionRepository) {}
+  constructor(
+    private readonly transactionRepository: TransactionRepository,
+    private readonly giftService: GiftService,
+  ) {}
 
   // *************************************************
   // **************** GET METHODS ********************
@@ -21,7 +26,7 @@ export class TransactionService {
       // fetch all private, non-recallable, and pending transactions sent to this user
       const txs = await this.transactionRepository.find({
         recipient: userId,
-        status: TransactionStatus.PENDING,
+        status: NoteStatus.PENDING,
         private: true,
         recallable: false,
       });
@@ -44,23 +49,58 @@ export class TransactionService {
       const recallable = allRecallable.filter(
         (tx) =>
           (!tx.recallableTime || tx.recallableTime <= now) &&
-          tx.status === TransactionStatus.PENDING,
+          tx.status === NoteStatus.PENDING,
       );
       const waitingToRecall = allRecallable.filter(
         (tx) =>
           tx.recallableTime &&
           tx.recallableTime > now &&
-          tx.status === TransactionStatus.PENDING,
+          tx.status === NoteStatus.PENDING,
       );
 
-      // Find the next recall time (minimum recallableTime in waitingToRecall)
+      // Fetch recallable and waiting gifts (red packets)
+      const allGifts = await this.giftService.findRecallableGifts(userAddress);
+
+      const recallableGifts = allGifts.filter(
+        (gift) => gift.recallableTime && gift.recallableTime <= now,
+      );
+      const waitingGifts = allGifts.filter(
+        (gift) => gift.recallableTime && gift.recallableTime > now,
+      );
+
+      // Map gifts to unified format
+      const recallableGiftItems = recallableGifts.map((gift) => ({
+        ...gift,
+        isGift: true,
+      }));
+      const waitingGiftItems = waitingGifts.map((gift) => ({
+        ...gift,
+        isGift: true,
+      }));
+
+      // Map transactions to unified format
+      const recallableTxItems = recallable.map((tx) => ({
+        ...tx,
+        isGift: false,
+      }));
+      const waitingTxItems = waitingToRecall.map((tx) => ({
+        ...tx,
+        isGift: false,
+      }));
+
+      // Merge
+      const recallableItems = [...recallableTxItems, ...recallableGiftItems];
+      const waitingToRecallItems = [...waitingTxItems, ...waitingGiftItems];
+
+      // Find the next recall time (minimum recallableTime in waitingToRecall and recallableAfter in waitingGifts)
       let nextRecallTime: Date | null = null;
-      if (waitingToRecall.length > 0) {
-        nextRecallTime = waitingToRecall.reduce(
-          (min, tx) =>
-            !min || (tx.recallableTime && tx.recallableTime < min)
-              ? tx.recallableTime
-              : min,
+      const allWaitingTimes = [
+        ...waitingToRecall.map((tx) => tx.recallableTime),
+        ...waitingGifts.map((gift) => gift.recallableTime),
+      ].filter(Boolean);
+      if (allWaitingTimes.length > 0) {
+        nextRecallTime = allWaitingTimes.reduce(
+          (min, t) => (!min || (t && t < min) ? t : min),
           null as Date | null,
         );
       }
@@ -68,13 +108,17 @@ export class TransactionService {
       // Count all recalled transactions for this user
       const recalledTxs = await this.transactionRepository.find({
         sender: userAddress,
-        status: TransactionStatus.RECALLED,
+        status: NoteStatus.RECALLED,
       });
-      const recalledCount = recalledTxs.length;
+
+      const recalledGifts =
+        await this.giftService.findRecalledGifts(userAddress);
+
+      const recalledCount = recalledTxs.length + recalledGifts.length;
 
       return {
-        recallable,
-        waitingToRecall,
+        recallableItems,
+        waitingToRecallItems,
         nextRecallTime,
         recalledCount,
       };
@@ -129,15 +173,15 @@ export class TransactionService {
     // first check if transaction is available
     const transactions = await this.transactionRepository.find({
       id: In(ids),
-      status: TransactionStatus.PENDING,
+      status: NoteStatus.PENDING,
     });
     if (transactions.length !== ids.length) {
       throw new BadRequestException(ErrorTransaction.TransactionNotFound);
     }
 
     const affected = await this.transactionRepository.updateMany(
-      { id: In(ids), status: TransactionStatus.PENDING },
-      { status: TransactionStatus.RECALLED },
+      { id: In(ids), status: NoteStatus.PENDING },
+      { status: NoteStatus.RECALLED },
     );
     return { affected: affected || 0 };
   }
@@ -149,17 +193,53 @@ export class TransactionService {
     // first check if transaction is available
     const transactions = await this.transactionRepository.find({
       id: In(ids),
-      status: TransactionStatus.PENDING,
+      status: NoteStatus.PENDING,
     });
     if (transactions.length !== ids.length) {
       throw new BadRequestException(ErrorTransaction.TransactionNotFound);
     }
 
     const affected = await this.transactionRepository.updateMany(
-      { id: In(ids), status: TransactionStatus.PENDING },
-      { status: TransactionStatus.CONSUMED },
+      { id: In(ids), status: NoteStatus.PENDING },
+      { status: NoteStatus.CONSUMED },
     );
     return { affected: affected || 0 };
+  }
+
+  async recallBatch(dto: RecallRequestDto) {
+    const results = [];
+    for (const item of dto.items) {
+      if (item.type === 'transaction') {
+        try {
+          const affected = await this.recallTransactions([item.id.toString()]);
+          results.push({
+            type: 'transaction',
+            id: item.id,
+            success: !!affected.affected,
+          });
+        } catch (e) {
+          results.push({
+            type: 'transaction',
+            id: item.id,
+            success: false,
+            error: e.message,
+          });
+        }
+      } else if (item.type === 'gift') {
+        try {
+          await this.giftService.recallGift(item.id);
+          results.push({ type: 'gift', id: item.id, success: true });
+        } catch (e) {
+          results.push({
+            type: 'gift',
+            id: item.id,
+            success: false,
+            error: e.message,
+          });
+        }
+      }
+    }
+    return { results };
   }
 
   // *************************************************
@@ -226,7 +306,7 @@ export class TransactionService {
       recallableTime: dto.recallableTime ? new Date(dto.recallableTime) : null,
       serialNumber: dto.serialNumber,
       noteType: dto.noteType,
-      status: TransactionStatus.PENDING,
+      status: NoteStatus.PENDING,
     };
   }
 

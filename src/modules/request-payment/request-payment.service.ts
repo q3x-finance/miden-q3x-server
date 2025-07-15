@@ -20,7 +20,7 @@ export class RequestPaymentService {
   async getRequests(userAddress: string) {
     try {
       const result = await this.requestPaymentRepository.find({
-        payerAddress: userAddress,
+        payer: userAddress,
         status: In([
           RequestPaymentStatus.PENDING,
           RequestPaymentStatus.ACCEPTED,
@@ -60,7 +60,7 @@ export class RequestPaymentService {
     try {
       const req = await this.requestPaymentRepository.findOne({
         id,
-        payerAddress: userAddress,
+        payer: userAddress,
       });
       if (!req) throw new BadRequestException(ErrorRequestPayment.NOT_FOUND);
       if (req.status !== RequestPaymentStatus.PENDING)
@@ -78,7 +78,7 @@ export class RequestPaymentService {
     try {
       const req = await this.requestPaymentRepository.findOne({
         id,
-        payerAddress: userAddress,
+        payer: userAddress,
       });
       if (!req) throw new BadRequestException(ErrorRequestPayment.NOT_FOUND);
       if (req.status !== RequestPaymentStatus.PENDING)
