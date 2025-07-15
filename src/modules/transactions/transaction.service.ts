@@ -7,6 +7,14 @@ import { handleError } from 'src/common/utils/errors';
 import { In } from 'typeorm';
 import { GiftService } from '../gift/gift.service';
 import { NoteStatus } from 'src/common/enums/note';
+import {
+  validateAddress,
+  validateAmount,
+  validateSerialNumber,
+  validateFutureDate,
+  validateDifferentAddresses,
+  normalizeAddress,
+} from 'src/common/utils/validation.util';
 
 @Injectable()
 export class TransactionService {
@@ -23,12 +31,14 @@ export class TransactionService {
 
   async getConsumableTransactions(userId: string): Promise<any[]> {
     try {
-      // fetch all private, non-recallable, and pending transactions sent to this user
+      validateAddress(userId, 'userId');
+      const normalizedUserId = normalizeAddress(userId);
+
+      // Fetch all private, non-recallable, and pending transactions sent to this user
       const txs = await this.transactionRepository.find({
-        recipient: userId,
+        recipient: normalizedUserId,
         status: NoteStatus.PENDING,
         private: true,
-        recallable: false,
       });
       return txs;
     } catch (error) {
@@ -38,9 +48,12 @@ export class TransactionService {
 
   async getRecallDashboardData(userAddress: string) {
     try {
+      validateAddress(userAddress, 'userAddress');
+      const normalizedUserAddress = normalizeAddress(userAddress);
+
       // Fetch all recallable transactions sent by this user
       const allRecallable = await this.transactionRepository.find({
-        sender: userAddress,
+        sender: normalizedUserAddress,
         recallable: true,
       });
 
@@ -59,7 +72,9 @@ export class TransactionService {
       );
 
       // Fetch recallable and waiting gifts (red packets)
-      const allGifts = await this.giftService.findRecallableGifts(userAddress);
+      const allGifts = await this.giftService.findRecallableGifts(
+        normalizedUserAddress,
+      );
 
       const recallableGifts = allGifts.filter(
         (gift) => gift.recallableTime && gift.recallableTime <= now,
@@ -107,12 +122,13 @@ export class TransactionService {
 
       // Count all recalled transactions for this user
       const recalledTxs = await this.transactionRepository.find({
-        sender: userAddress,
+        sender: normalizedUserAddress,
         status: NoteStatus.RECALLED,
       });
 
-      const recalledGifts =
-        await this.giftService.findRecalledGifts(userAddress);
+      const recalledGifts = await this.giftService.findRecalledGifts(
+        normalizedUserAddress,
+      );
 
       const recalledCount = recalledTxs.length + recalledGifts.length;
 
@@ -143,6 +159,18 @@ export class TransactionService {
 
   async sendBatch(dtos: SendTransactionDto[]): Promise<TransactionEntity[]> {
     try {
+      if (!dtos || !Array.isArray(dtos) || dtos.length === 0) {
+        throw new BadRequestException(
+          'Transaction array is required and cannot be empty',
+        );
+      }
+
+      if (dtos.length > 100) {
+        throw new BadRequestException(
+          'Maximum 100 transactions allowed per batch',
+        );
+      }
+
       const entities: Partial<TransactionEntity>[] = [];
 
       for (const dto of dtos) {
@@ -169,77 +197,115 @@ export class TransactionService {
   async recallTransactions(
     transactionIds: string[],
   ): Promise<{ affected: number }> {
-    const ids = this.parseAndValidateTransactionIds(transactionIds);
-    // first check if transaction is available
-    const transactions = await this.transactionRepository.find({
-      id: In(ids),
-      status: NoteStatus.PENDING,
-    });
-    if (transactions.length !== ids.length) {
-      throw new BadRequestException(ErrorTransaction.TransactionNotFound);
-    }
+    try {
+      const ids = this.parseAndValidateTransactionIds(transactionIds);
 
-    const affected = await this.transactionRepository.updateMany(
-      { id: In(ids), status: NoteStatus.PENDING },
-      { status: NoteStatus.RECALLED },
-    );
-    return { affected: affected || 0 };
+      // First check if transactions are available and in pending status
+      const transactions = await this.transactionRepository.find({
+        id: In(ids),
+        status: NoteStatus.PENDING,
+      });
+
+      if (transactions.length !== ids.length) {
+        throw new BadRequestException(ErrorTransaction.TransactionNotFound);
+      }
+
+      // Check if transactions are recallable
+      const now = new Date();
+      const nonRecallable = transactions.filter(
+        (tx) =>
+          !tx.recallable || (tx.recallableTime && tx.recallableTime > now),
+      );
+
+      if (nonRecallable.length > 0) {
+        throw new BadRequestException(
+          'Some transactions are not recallable yet',
+        );
+      }
+
+      const affected = await this.transactionRepository.updateMany(
+        { id: In(ids), status: NoteStatus.PENDING },
+        { status: NoteStatus.RECALLED },
+      );
+      return { affected: affected || 0 };
+    } catch (error) {
+      handleError(error, this.logger);
+    }
   }
 
   async consumeTransactions(
     transactionIds: string[],
   ): Promise<{ affected: number }> {
-    const ids = this.parseAndValidateTransactionIds(transactionIds);
-    // first check if transaction is available
-    const transactions = await this.transactionRepository.find({
-      id: In(ids),
-      status: NoteStatus.PENDING,
-    });
-    if (transactions.length !== ids.length) {
-      throw new BadRequestException(ErrorTransaction.TransactionNotFound);
-    }
+    try {
+      const ids = this.parseAndValidateTransactionIds(transactionIds);
 
-    const affected = await this.transactionRepository.updateMany(
-      { id: In(ids), status: NoteStatus.PENDING },
-      { status: NoteStatus.CONSUMED },
-    );
-    return { affected: affected || 0 };
+      // First check if transactions are available and in pending status
+      const transactions = await this.transactionRepository.find({
+        id: In(ids),
+        status: NoteStatus.PENDING,
+      });
+
+      if (transactions.length !== ids.length) {
+        throw new BadRequestException(ErrorTransaction.TransactionNotFound);
+      }
+
+      const affected = await this.transactionRepository.updateMany(
+        { id: In(ids), status: NoteStatus.PENDING },
+        { status: NoteStatus.CONSUMED },
+      );
+      return { affected: affected || 0 };
+    } catch (error) {
+      ``;
+      handleError(error, this.logger);
+    }
   }
 
   async recallBatch(dto: RecallRequestDto) {
-    const results = [];
-    for (const item of dto.items) {
-      if (item.type === 'transaction') {
-        try {
-          const affected = await this.recallTransactions([item.id.toString()]);
-          results.push({
-            type: 'transaction',
-            id: item.id,
-            success: !!affected.affected,
-          });
-        } catch (e) {
-          results.push({
-            type: 'transaction',
-            id: item.id,
-            success: false,
-            error: e.message,
-          });
-        }
-      } else if (item.type === 'gift') {
-        try {
-          await this.giftService.recallGift(item.id);
-          results.push({ type: 'gift', id: item.id, success: true });
-        } catch (e) {
-          results.push({
-            type: 'gift',
-            id: item.id,
-            success: false,
-            error: e.message,
-          });
+    try {
+      if (!dto.items || !Array.isArray(dto.items) || dto.items.length === 0) {
+        throw new BadRequestException(
+          'Items array is required and cannot be empty',
+        );
+      }
+
+      const results = [];
+      for (const item of dto.items) {
+        if (item.type === 'transaction') {
+          try {
+            const affected = await this.recallTransactions([
+              item.id.toString(),
+            ]);
+            results.push({
+              type: 'transaction',
+              id: item.id,
+              success: !!affected.affected,
+            });
+          } catch (e) {
+            results.push({
+              type: 'transaction',
+              id: item.id,
+              success: false,
+              error: e.message,
+            });
+          }
+        } else if (item.type === 'gift') {
+          try {
+            await this.giftService.recallGift(item.id);
+            results.push({ type: 'gift', id: item.id, success: true });
+          } catch (e) {
+            results.push({
+              type: 'gift',
+              id: item.id,
+              success: false,
+              error: e.message,
+            });
+          }
         }
       }
+      return { results };
+    } catch (error) {
+      handleError(error, this.logger);
     }
-    return { results };
   }
 
   // *************************************************
@@ -249,71 +315,93 @@ export class TransactionService {
   private async validateTransaction(
     dto: SendTransactionDto,
   ): Promise<Partial<TransactionEntity> | null> {
-    const { AccountId } = await import('@demox-labs/miden-sdk');
+    try {
+      // Validate addresses
+      validateAddress(dto.sender, 'sender');
+      validateAddress(dto.recipient, 'recipient');
 
-    // we dont store public transactions
-    if (!dto.private && !dto.recallable) {
-      return null;
-    }
+      // Normalize addresses
+      const normalizedSender = normalizeAddress(dto.sender);
+      const normalizedRecipient = normalizeAddress(dto.recipient);
 
-    // validate if sender and recipient are valid
-    const sender = AccountId.fromHex(dto.sender);
-    const recipient = AccountId.fromHex(dto.recipient);
+      // Check if sender and recipient are different
+      validateDifferentAddresses(
+        normalizedSender,
+        normalizedRecipient,
+        'sender',
+        'recipient',
+      );
 
-    if (!sender.isRegularAccount() || !recipient.isRegularAccount()) {
-      throw new BadRequestException(ErrorTransaction.InvalidSenderOrRecipient);
-    }
-
-    // if recallable flag is true, we need to check if recallable time is valid
-    if (dto.recallable) {
-      if (!dto.recallableTime || dto.recallableTime < new Date()) {
-        throw new BadRequestException(ErrorTransaction.InvalidRecallableTime);
+      // We don't store public transactions that are not recallable
+      if (!dto.private && !dto.recallable) {
+        return null;
       }
-    }
 
-    // the assets length should be at least 1
-    if (dto.assets.length < 1) {
-      throw new BadRequestException(ErrorTransaction.InvalidAssetsLength);
-    }
-
-    // the assets should contain correct faucet and amount
-    for (const asset of dto.assets) {
-      if (!asset.faucetId || !asset.amount) {
-        throw new BadRequestException(ErrorTransaction.InvalidAssets);
+      // Validate recallable time if recallable flag is true
+      if (dto.recallable && dto.recallableTime) {
+        validateFutureDate(dto.recallableTime, 'recallableTime');
       }
-      if (Number(asset.amount) <= 0) {
-        throw new BadRequestException(ErrorTransaction.InvalidAssets);
-      }
-      AccountId.fromHex(asset.faucetId);
-    }
 
-    // verify the serial number is number and array length is 4
-    if (dto.serialNumber.length !== 4) {
-      throw new BadRequestException(ErrorTransaction.InvalidSerialNumber);
-    }
-    for (const serialNumber of dto.serialNumber) {
-      if (typeof serialNumber !== 'number') {
-        throw new BadRequestException(ErrorTransaction.InvalidSerialNumber);
+      // Validate assets
+      if (!dto.assets || dto.assets.length < 1) {
+        throw new BadRequestException(ErrorTransaction.InvalidAssetsLength);
       }
-    }
 
-    return {
-      sender: dto.sender,
-      recipient: dto.recipient,
-      assets: dto.assets,
-      private: dto.private,
-      recallable: dto.recallable,
-      recallableTime: dto.recallableTime ? new Date(dto.recallableTime) : null,
-      serialNumber: dto.serialNumber,
-      noteType: dto.noteType,
-      status: NoteStatus.PENDING,
-    };
+      // Validate each asset
+      for (const asset of dto.assets) {
+        if (!asset.faucetId || !asset.amount) {
+          throw new BadRequestException(ErrorTransaction.InvalidAssets);
+        }
+
+        validateAddress(asset.faucetId, 'asset.faucetId');
+        validateAmount(asset.amount, 'asset.amount');
+      }
+
+      // Validate serial number
+      validateSerialNumber(dto.serialNumber, 'serialNumber');
+
+      // Normalize asset faucetIds
+      const normalizedAssets = dto.assets.map((asset) => ({
+        faucetId: normalizeAddress(asset.faucetId),
+        amount: asset.amount,
+      }));
+
+      return {
+        sender: normalizedSender,
+        recipient: normalizedRecipient,
+        assets: normalizedAssets,
+        private: dto.private,
+        recallable: dto.recallable,
+        recallableTime: dto.recallableTime
+          ? new Date(dto.recallableTime)
+          : null,
+        serialNumber: dto.serialNumber,
+        noteType: dto.noteType,
+        status: NoteStatus.PENDING,
+      };
+    } catch (error) {
+      handleError(error, this.logger);
+    }
   }
 
   private parseAndValidateTransactionIds(transactionIds: string[]): number[] {
+    if (
+      !transactionIds ||
+      !Array.isArray(transactionIds) ||
+      transactionIds.length === 0
+    ) {
+      throw new BadRequestException(
+        'Transaction IDs array is required and cannot be empty',
+      );
+    }
+
+    if (transactionIds.length > 100) {
+      throw new BadRequestException('Maximum 100 transaction IDs allowed');
+    }
+
     return transactionIds.map((id) => {
       const parsedId = Number(id);
-      if (isNaN(parsedId)) {
+      if (isNaN(parsedId) || parsedId <= 0) {
         throw new BadRequestException(ErrorTransaction.InvalidTransactionId);
       }
       return parsedId;

@@ -13,6 +13,17 @@ import { TransactionEntity } from 'src/modules/transactions/transaction.entity';
 import { AddressBookEntity } from 'src/modules/address-book/address-book.entity';
 import { RequestPaymentEntity } from 'src/modules/request-payment/request-payment.entity';
 import { GiftEntity } from 'src/modules/gift/gift.entity';
+import {
+  GroupPaymentEntity,
+  GroupPaymentGroupEntity,
+  GroupPaymentMemberStatusEntity,
+} from 'src/modules/group-payment/group-payment.entity';
+import {
+  AnalyticsEndpointStatsEntity,
+  AnalyticsEventEntity,
+  AnalyticsTransactionStatsEntity,
+  AnalyticsUserSessionEntity,
+} from 'src/modules/analytics';
 
 @Module({
   imports: [
@@ -37,6 +48,13 @@ import { GiftEntity } from 'src/modules/gift/gift.entity';
             AddressBookEntity,
             RequestPaymentEntity,
             GiftEntity,
+            GroupPaymentGroupEntity,
+            GroupPaymentEntity,
+            GroupPaymentMemberStatusEntity,
+            AnalyticsEventEntity,
+            AnalyticsUserSessionEntity,
+            AnalyticsEndpointStatsEntity,
+            AnalyticsTransactionStatsEntity,
           ],
           // We are using migrations, synchronize should be set to false.
           synchronize: false,

@@ -1,9 +1,20 @@
 import { Body, Controller, Get, Post, Put, Param, Query } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBody,
+  ApiHeader,
+} from '@nestjs/swagger';
 import { RequestPaymentService } from './request-payment.service';
 import { CreateRequestPaymentDto } from './request-payment.dto';
 
 @ApiTags('Request Payment')
+@ApiHeader({
+  name: 'x-api-key',
+  description: 'API Key for authentication',
+  required: true,
+})
 @Controller('request-payment')
 export class RequestPaymentController {
   constructor(private readonly service: RequestPaymentService) {}

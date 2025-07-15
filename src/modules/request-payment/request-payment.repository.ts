@@ -38,4 +38,11 @@ export class RequestPaymentRepository {
     await this.repo.update(id, { status });
     return this.repo.findOne({ where: { id } });
   }
+
+  async createMany(
+    dtos: Partial<RequestPaymentEntity>[],
+  ): Promise<RequestPaymentEntity[]> {
+    const entities = this.repo.create(dtos);
+    return this.repo.save(entities);
+  }
 }

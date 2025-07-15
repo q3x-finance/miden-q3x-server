@@ -1,15 +1,21 @@
-import { Body, Controller, Get, Param, Post, Put, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Put } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
   ApiResponse,
   ApiBody,
   ApiParam,
+  ApiHeader,
 } from '@nestjs/swagger';
 import { GiftService } from './gift.service';
-import { CreateGiftDto, ClaimGiftDto, RecallGiftDto } from './gift.dto';
+import { CreateGiftDto } from './gift.dto';
 
 @ApiTags('Gift')
+@ApiHeader({
+  name: 'x-api-key',
+  description: 'API Key for authentication',
+  required: true,
+})
 @Controller('gift')
 export class GiftController {
   constructor(private readonly service: GiftService) {}

@@ -3,6 +3,7 @@ import { TransactionService } from './transaction.service';
 import { SendTransactionDto, RecallRequestDto } from './transaction.dto';
 import {
   ApiBody,
+  ApiHeader,
   ApiOperation,
   ApiQuery,
   ApiResponse,
@@ -10,6 +11,11 @@ import {
 } from '@nestjs/swagger';
 
 @ApiTags('Transactions')
+@ApiHeader({
+  name: 'x-api-key',
+  description: 'API Key for authentication',
+  required: true,
+})
 @Controller('/transactions')
 export class TransactionController {
   constructor(private readonly transactionService: TransactionService) {}

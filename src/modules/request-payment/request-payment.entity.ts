@@ -1,5 +1,6 @@
 import { BaseEntity } from 'src/database/base.entity';
-import { Entity, Column } from 'typeorm';
+import { Entity, Column, ManyToOne, JoinColumn } from 'typeorm';
+import { GroupPaymentEntity } from '../group-payment/group-payment.entity';
 
 export enum RequestPaymentStatus {
   PENDING = 'pending',
@@ -30,4 +31,14 @@ export class RequestPaymentEntity extends BaseEntity {
     default: RequestPaymentStatus.PENDING,
   })
   status: RequestPaymentStatus;
+
+  @Column({ type: 'boolean', default: false })
+  isGroupPayment: boolean;
+
+  @ManyToOne(() => GroupPaymentEntity, { nullable: true })
+  @JoinColumn({ name: 'groupPaymentId' })
+  groupPayment: GroupPaymentEntity;
+
+  @Column({ type: 'int', nullable: true })
+  groupPaymentId: number | null;
 }

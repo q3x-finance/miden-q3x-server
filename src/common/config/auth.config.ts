@@ -11,4 +11,5 @@ export default registerAs('auth', () => ({
     password: process.env.ADMIN_PASSWORD,
     address: process.env.ADMIN_ADDRESS,
   },
+  apiKey: process.env.X_API_KEY,
 }));

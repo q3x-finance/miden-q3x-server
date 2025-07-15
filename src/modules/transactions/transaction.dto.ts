@@ -8,26 +8,54 @@ import {
   IsOptional,
   IsString,
   ValidateNested,
+  Matches,
+  MinLength,
+  ArrayMinSize,
+  ArrayMaxSize,
+  Min,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 import { NoteType } from 'src/common/enums/note';
 
 export class AssetDto {
+  @ApiProperty({
+    description: 'Faucet ID (token address)',
+    example: '0x09bcfc41564f0420000864bbc261d4',
+  })
   @IsString()
+  @Matches(/^0x[0-9a-fA-F]+$/, {
+    message: 'faucetId must be a valid hex address starting with 0x',
+  })
+  @MinLength(3, { message: 'faucetId is too short' })
   faucetId: string;
 
+  @ApiProperty({
+    description: 'Amount',
+    example: '1000',
+  })
   @IsString()
+  @Matches(/^\d+(\.\d+)?$/, {
+    message: 'amount must be a valid positive number',
+  })
   amount: string;
 }
 
 export class SendTransactionDto {
   @ApiProperty({ example: '0x1626bd9a976e21100006fc561b6b09' })
   @IsString()
+  @Matches(/^0x[0-9a-fA-F]+$/, {
+    message: 'sender must be a valid hex address starting with 0x',
+  })
+  @MinLength(3, { message: 'sender address is too short' })
   sender: string;
 
   @ApiProperty({ example: '0x1626bd9a976e21100006fc561b6b09' })
   @IsString()
+  @Matches(/^0x[0-9a-fA-F]+$/, {
+    message: 'recipient must be a valid hex address starting with 0x',
+  })
+  @MinLength(3, { message: 'recipient address is too short' })
   recipient: string;
 
   @ApiProperty({
@@ -40,6 +68,8 @@ export class SendTransactionDto {
     isArray: true,
   })
   @IsArray()
+  @ArrayMinSize(1, { message: 'At least one asset is required' })
+  @ArrayMaxSize(10, { message: 'Maximum 10 assets allowed' })
   @ValidateNested({ each: true })
   @Type(() => AssetDto)
   assets: AssetDto[];
@@ -59,7 +89,12 @@ export class SendTransactionDto {
 
   @ApiProperty({ example: [1, 2, 3, 4] })
   @IsArray()
-  @IsNumber({}, { each: true })
+  @ArrayMinSize(4, { message: 'serialNumber must contain exactly 4 elements' })
+  @ArrayMaxSize(4, { message: 'serialNumber must contain exactly 4 elements' })
+  @IsNumber(
+    {},
+    { each: true, message: 'Each element in serialNumber must be a number' },
+  )
   serialNumber: number[];
 
   @ApiProperty({ example: NoteType.P2ID })
@@ -73,6 +108,7 @@ export class RecallItem {
 
   @IsOptional()
   @IsNumber()
+  @Min(1, { message: 'id must be a positive number' })
   id: number;
 }
 
@@ -84,6 +120,8 @@ export class RecallRequestDto {
     ],
   })
   @IsArray()
+  @ArrayMinSize(1, { message: 'At least one item is required' })
+  @ArrayMaxSize(50, { message: 'Maximum 50 items allowed' })
   @ValidateNested({ each: true })
   @Type(() => RecallItem)
   items: RecallItem[];

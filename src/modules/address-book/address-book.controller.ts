@@ -1,9 +1,20 @@
 import { Body, Controller, Get, Post, Query } from '@nestjs/common';
 import { AddressBookService } from './address-book.service';
 import { AddressBookDto } from './address-book.dto';
-import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBody,
+  ApiHeader,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 
 @ApiTags('Address Book')
+@ApiHeader({
+  name: 'x-api-key',
+  description: 'API Key for authentication',
+  required: true,
+})
 @Controller('address-book')
 export class AddressBookController {
   constructor(private readonly addressBookService: AddressBookService) {}

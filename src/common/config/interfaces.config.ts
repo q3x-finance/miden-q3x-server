@@ -34,6 +34,7 @@ export interface AuthConfig {
     email: string;
     password: string;
   };
+  apiKey: string;
 }
 
 // @notice

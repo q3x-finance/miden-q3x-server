@@ -1,4 +1,11 @@
-import { IsString, IsEnum, IsNumberString, IsNotEmpty } from 'class-validator';
+import {
+  IsString,
+  IsEnum,
+  IsNotEmpty,
+  Matches,
+  MinLength,
+  MaxLength,
+} from 'class-validator';
 import { RequestPaymentStatus } from './request-payment.entity';
 import { ApiProperty } from '@nestjs/swagger';
 
@@ -9,6 +16,10 @@ export class CreateRequestPaymentDto {
   })
   @IsNotEmpty()
   @IsString()
+  @Matches(/^0x[0-9a-fA-F]+$/, {
+    message: 'payer must be a valid hex address starting with 0x',
+  })
+  @MinLength(3, { message: 'payer address is too short' })
   payer: string;
 
   @ApiProperty({
@@ -17,6 +28,10 @@ export class CreateRequestPaymentDto {
   })
   @IsNotEmpty()
   @IsString()
+  @Matches(/^0x[0-9a-fA-F]+$/, {
+    message: 'payee must be a valid hex address starting with 0x',
+  })
+  @MinLength(3, { message: 'payee address is too short' })
   payee: string;
 
   @ApiProperty({
@@ -24,7 +39,10 @@ export class CreateRequestPaymentDto {
     example: '1000',
   })
   @IsNotEmpty()
-  @IsNumberString()
+  @IsString()
+  @Matches(/^\d+(\.\d+)?$/, {
+    message: 'amount must be a valid positive number',
+  })
   amount: string;
 
   @ApiProperty({
@@ -33,6 +51,10 @@ export class CreateRequestPaymentDto {
   })
   @IsNotEmpty()
   @IsString()
+  @Matches(/^0x[0-9a-fA-F]+$/, {
+    message: 'token must be a valid hex address starting with 0x',
+  })
+  @MinLength(3, { message: 'token address is too short' })
   token: string;
 
   @ApiProperty({
@@ -41,6 +63,7 @@ export class CreateRequestPaymentDto {
   })
   @IsNotEmpty()
   @IsString()
+  @MaxLength(500, { message: 'message cannot be longer than 500 characters' })
   message: string;
 }
 
