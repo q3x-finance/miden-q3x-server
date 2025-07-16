@@ -4,7 +4,6 @@ import { GiftRepository } from './gift.repository';
 import { CreateGiftDto } from './gift.dto';
 import { AppConfigService } from 'src/common/config/services/config.service';
 import { NoteStatus, NoteType } from 'src/common/enums/note';
-import { ErrorGift } from 'src/common/enums/errors';
 import { handleError } from 'src/common/utils/errors';
 import {
   validateAddress,
@@ -13,6 +12,7 @@ import {
   normalizeAddress,
   sanitizeString,
 } from 'src/common/utils/validation.util';
+import { ErrorGift } from 'src/common/constants/errors';
 
 function hashSecret(secret: string): string {
   return createHash('sha256').update(secret).digest('hex');
@@ -61,16 +61,16 @@ export class GiftService {
   // **************** POST METHODS *******************
   // *************************************************
 
-  public async sendGift(dto: CreateGiftDto) {
+  public async sendGift(dto: CreateGiftDto, senderAddress: string) {
     try {
       // Validate all inputs
-      validateAddress(dto.senderAddress, 'senderAddress');
+      validateAddress(senderAddress, 'senderAddress');
       validateAddress(dto.token, 'token');
       validateAmount(dto.amount, 'amount');
       validateSerialNumber(dto.serialNumber, 'serialNumber');
 
       // Normalize addresses
-      const normalizedSenderAddress = normalizeAddress(dto.senderAddress);
+      const normalizedSenderAddress = normalizeAddress(senderAddress);
       const normalizedToken = normalizeAddress(dto.token);
 
       // Generate secure secret
@@ -99,6 +99,9 @@ export class GiftService {
         normalizedSenderAddress,
         normalizedToken,
       );
+
+      // todo: create recallable transaction for creator, because all gift are default recallable
+
       return { ...gift, link: `/gift/${secret}` };
     } catch (error) {
       handleError(error, this.logger);

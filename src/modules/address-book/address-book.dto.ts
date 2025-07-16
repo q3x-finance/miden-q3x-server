@@ -10,18 +10,6 @@ import {
 
 export class AddressBookDto {
   @ApiProperty({
-    description: 'The address of the user',
-    example: '0x1626bd9a976e21100006fc561b6b09',
-  })
-  @IsNotEmpty()
-  @IsString()
-  @Matches(/^0x[0-9a-fA-F]+$/, {
-    message: 'userAddress must be a valid hex address starting with 0x',
-  })
-  @MinLength(3, { message: 'userAddress is too short' })
-  userAddress: string;
-
-  @ApiProperty({
     description: 'The category of the address book entry',
     example: 'Company',
   })

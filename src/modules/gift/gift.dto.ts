@@ -13,18 +13,6 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateGiftDto {
   @ApiProperty({
-    description: 'Sender address',
-    example: '0x1626bd9a976e21100006fc561b6b09',
-  })
-  @IsString()
-  @IsNotEmpty()
-  @Matches(/^0x[0-9a-fA-F]+$/, {
-    message: 'senderAddress must be a valid hex address starting with 0x',
-  })
-  @MinLength(3, { message: 'senderAddress is too short' })
-  senderAddress: string;
-
-  @ApiProperty({
     description: 'Token address or symbol',
     example: '0x1626bd9a976e21100006fc561b6b09',
   })

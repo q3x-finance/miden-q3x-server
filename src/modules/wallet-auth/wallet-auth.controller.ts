@@ -5,7 +5,6 @@ import {
   Body,
   Query,
   Req,
-  HttpStatus,
   UseGuards,
 } from '@nestjs/common';
 import { Request } from 'express';
@@ -24,8 +23,6 @@ import {
   RefreshTokenDto,
   RevokeKeyDto,
   RevokeSessionDto,
-  GetKeysDto,
-  GetSessionsDto,
 } from './wallet-auth.dto';
 import { WalletAuthGuard } from './wallet-auth.guard';
 
@@ -34,7 +31,7 @@ import { WalletAuthGuard } from './wallet-auth.guard';
 export class WalletAuthController {
   constructor(private readonly walletAuthService: WalletAuthService) {}
 
-  @Post('initiate')
+  @Post('/initiate')
   @ApiOperation({ summary: 'Initiate authentication process' })
   @ApiResponse({ status: 201, description: 'Challenge generated successfully' })
   @ApiBody({ type: InitiateAuthDto })

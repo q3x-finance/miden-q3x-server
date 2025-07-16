@@ -1,20 +1,26 @@
-import { Body, Controller, Get, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { AddressBookService } from './address-book.service';
 import { AddressBookDto } from './address-book.dto';
+import { RequestWithWalletAuth } from 'src/common/interfaces';
 import {
+  ApiBearerAuth,
   ApiBody,
-  ApiHeader,
   ApiOperation,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { WalletAuthGuard } from '../wallet-auth/wallet-auth.guard';
 
 @ApiTags('Address Book')
-@ApiHeader({
-  name: 'x-api-key',
-  description: 'API Key for authentication',
-  required: true,
-})
+@ApiBearerAuth()
 @Controller('address-book')
 export class AddressBookController {
   constructor(private readonly addressBookService: AddressBookService) {}
@@ -23,6 +29,7 @@ export class AddressBookController {
   // **************** GET METHODS *******************
   // *************************************************
   @Get()
+  @UseGuards(WalletAuthGuard)
   @ApiOperation({
     summary: 'Get all address book entries',
     description: 'Get all address book entries',
@@ -31,12 +38,15 @@ export class AddressBookController {
     status: 200,
     description: 'Address book entries fetched successfully',
   })
-  async getAllAddressBookEntries(@Query('userAddress') userAddress: string) {
-    return this.addressBookService.getAllAddressBookEntries(userAddress);
+  async getAllAddressBookEntries(@Req() req: RequestWithWalletAuth) {
+    return this.addressBookService.getAllAddressBookEntries(
+      req.walletAuth.walletAddress,
+    );
   }
 
   // check if name is duplicate
   @Get('check-name-duplicate')
+  @UseGuards(WalletAuthGuard)
   @ApiOperation({
     summary: 'Check if name is duplicate',
     description: 'Check if name is duplicate',
@@ -48,13 +58,14 @@ export class AddressBookController {
   async checkIfNameIsDuplicate(
     @Query('name') name: string,
     @Query('category') category: string,
-    @Query('userAddress') userAddress: string,
+    @Req() req: RequestWithWalletAuth,
   ) {
-    const dto = { name, category, userAddress };
+    const dto = { name, category, userAddress: req.walletAuth.walletAddress };
     return this.addressBookService.checkIfAddressBookNameExists(dto);
   }
 
   @Get('check-category-exists')
+  @UseGuards(WalletAuthGuard)
   @ApiOperation({
     summary: 'Check if category exists',
     description: 'Check if category exists',
@@ -64,16 +75,20 @@ export class AddressBookController {
     description: 'Category exists',
   })
   async checkIfCategoryExists(
-    @Query('userAddress') userAddress: string,
     @Query('category') category: string,
+    @Req() req: RequestWithWalletAuth,
   ) {
-    return this.addressBookService.checkIfCategoryExists(userAddress, category);
+    return this.addressBookService.checkIfCategoryExists(
+      req.walletAuth.walletAddress,
+      category,
+    );
   }
 
   // *************************************************
   // **************** POST METHODS *******************
   // *************************************************
   @Post()
+  @UseGuards(WalletAuthGuard)
   @ApiOperation({
     summary: 'Create a new address book entry',
     description: 'Create a new address book entry',
@@ -83,7 +98,13 @@ export class AddressBookController {
     description: 'Address book entry created successfully',
   })
   @ApiBody({ type: AddressBookDto })
-  async createNewAddressBookEntry(@Body() dto: AddressBookDto) {
-    return this.addressBookService.createNewAddressBookEntry(dto);
+  async createNewAddressBookEntry(
+    @Body() dto: AddressBookDto,
+    @Req() req: RequestWithWalletAuth,
+  ) {
+    return this.addressBookService.createNewAddressBookEntry(
+      dto,
+      req.walletAuth.walletAddress,
+    );
   }
 }

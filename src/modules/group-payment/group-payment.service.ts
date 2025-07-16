@@ -8,7 +8,6 @@ import {
 import { GroupPaymentRepository } from './group-payment.repository';
 import { CreateGroupDto, CreateGroupPaymentDto } from './group-payment.dto';
 import { GroupPaymentStatus } from './group-payment.entity';
-import { ErrorGroupPayment } from 'src/common/enums/errors';
 import { RequestPaymentService } from '../request-payment/request-payment.service';
 import { GroupPaymentMemberStatus } from './group-payment.entity';
 import { handleError } from 'src/common/utils/errors';
@@ -21,6 +20,7 @@ import {
   normalizeAddress,
   sanitizeString,
 } from 'src/common/utils/validation.util';
+import { ErrorGroupPayment } from 'src/common/constants/errors';
 
 @Injectable()
 export class GroupPaymentService {
@@ -32,10 +32,10 @@ export class GroupPaymentService {
     private readonly requestPaymentService: RequestPaymentService,
   ) {}
 
-  async createGroup(dto: CreateGroupDto) {
+  async createGroup(dto: CreateGroupDto, ownerAddress: string) {
     try {
       // Validate all inputs
-      validateAddress(dto.ownerAddress, 'ownerAddress');
+      validateAddress(ownerAddress, 'ownerAddress');
       validateName(dto.name, 'name');
       validateNonEmptyArray(dto.members, 'members');
 
@@ -48,7 +48,7 @@ export class GroupPaymentService {
       validateUniqueArray(dto.members, 'members');
 
       // Normalize addresses
-      const normalizedOwnerAddress = normalizeAddress(dto.ownerAddress);
+      const normalizedOwnerAddress = normalizeAddress(ownerAddress);
       const normalizedMembers = dto.members.map((member) =>
         normalizeAddress(member),
       );
@@ -93,10 +93,10 @@ export class GroupPaymentService {
     }
   }
 
-  async createGroupPayment(dto: CreateGroupPaymentDto) {
+  async createGroupPayment(dto: CreateGroupPaymentDto, ownerAddress: string) {
     try {
       // Validate all inputs
-      validateAddress(dto.ownerAddress, 'ownerAddress');
+      validateAddress(ownerAddress, 'ownerAddress');
       validateAddress(dto.token, 'token');
       validateAmount(dto.amount, 'amount');
 
@@ -109,7 +109,7 @@ export class GroupPaymentService {
       }
 
       // Normalize addresses
-      const normalizedOwnerAddress = normalizeAddress(dto.ownerAddress);
+      const normalizedOwnerAddress = normalizeAddress(ownerAddress);
       const normalizedToken = normalizeAddress(dto.token);
 
       // Find the group
@@ -211,14 +211,28 @@ export class GroupPaymentService {
     }
   }
 
-  async getGroupPayments(groupId: number) {
+  async getGroupPayments(groupId: number, ownerAddress: string) {
     try {
       if (!groupId || groupId <= 0) {
         throw new BadRequestException('groupId must be a positive number');
       }
 
+      validateAddress(ownerAddress, 'ownerAddress');
+      const normalizedOwnerAddress = normalizeAddress(ownerAddress);
+
       const payments =
         await this.groupPaymentRepository.findPaymentsByGroup(groupId);
+
+      // Check if the owner is the owner of the group
+      if (
+        payments.some(
+          (payment) => payment.ownerAddress !== normalizedOwnerAddress,
+        )
+      ) {
+        throw new BadRequestException(
+          'Only the group owner can view payments for this group',
+        );
+      }
 
       // Get member statuses for each payment and categorize by createdAt
       const paymentsWithStatuses = await Promise.all(

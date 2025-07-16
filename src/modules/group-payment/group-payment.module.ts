@@ -9,6 +9,7 @@ import { GroupPaymentRepository } from './group-payment.repository';
 import { GroupPaymentService } from './group-payment.service';
 import { GroupPaymentController } from './group-payment.controller';
 import { RequestPaymentModule } from '../request-payment/request-payment.module';
+import { WalletAuthModule } from '../wallet-auth/wallet-auth.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { RequestPaymentModule } from '../request-payment/request-payment.module'
       GroupPaymentMemberStatusEntity,
     ]),
     forwardRef(() => RequestPaymentModule),
+    WalletAuthModule,
   ],
   providers: [GroupPaymentRepository, GroupPaymentService],
   controllers: [GroupPaymentController],

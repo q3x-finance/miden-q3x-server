@@ -10,7 +10,6 @@ import { RequestPaymentRepository } from './request-payment.repository';
 import { CreateRequestPaymentDto } from './request-payment.dto';
 import { RequestPaymentStatus } from './request-payment.entity';
 import { handleError } from 'src/common/utils/errors';
-import { ErrorRequestPayment } from 'src/common/enums/errors';
 import { GroupPaymentRepository } from '../group-payment/group-payment.repository';
 import {
   GroupPaymentMemberStatus,
@@ -24,6 +23,7 @@ import {
   normalizeAddress,
   sanitizeString,
 } from 'src/common/utils/validation.util';
+import { ErrorRequestPayment } from 'src/common/constants/errors';
 
 @Injectable()
 export class RequestPaymentService {
@@ -213,11 +213,11 @@ export class RequestPaymentService {
       });
 
       if (!req) {
-        throw new BadRequestException(ErrorRequestPayment.NOT_FOUND);
+        throw new BadRequestException(ErrorRequestPayment.NotFound);
       }
 
       if (req.status !== RequestPaymentStatus.PENDING) {
-        throw new BadRequestException(ErrorRequestPayment.NOT_PENDING);
+        throw new BadRequestException(ErrorRequestPayment.NotPending);
       }
 
       // Update the request payment status
@@ -302,11 +302,11 @@ export class RequestPaymentService {
       });
 
       if (!req) {
-        throw new BadRequestException(ErrorRequestPayment.NOT_FOUND);
+        throw new BadRequestException(ErrorRequestPayment.NotFound);
       }
 
       if (req.status !== RequestPaymentStatus.PENDING) {
-        throw new BadRequestException(ErrorRequestPayment.NOT_PENDING);
+        throw new BadRequestException(ErrorRequestPayment.NotPending);
       }
 
       // Update the request payment status

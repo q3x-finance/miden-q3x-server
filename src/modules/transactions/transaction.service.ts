@@ -2,7 +2,6 @@ import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { TransactionRepository } from './transaction.repository';
 import { TransactionEntity } from './transaction.entity';
 import { SendTransactionDto, RecallRequestDto } from './transaction.dto';
-import { ErrorTransaction } from 'src/common/enums/errors';
 import { handleError } from 'src/common/utils/errors';
 import { In } from 'typeorm';
 import { GiftService } from '../gift/gift.service';
@@ -15,6 +14,7 @@ import {
   validateDifferentAddresses,
   normalizeAddress,
 } from 'src/common/utils/validation.util';
+import { ErrorTransaction } from 'src/common/constants/errors';
 
 @Injectable()
 export class TransactionService {
@@ -38,7 +38,6 @@ export class TransactionService {
       const txs = await this.transactionRepository.find({
         recipient: normalizedUserId,
         status: NoteStatus.PENDING,
-        private: true,
       });
       return txs;
     } catch (error) {
@@ -147,9 +146,12 @@ export class TransactionService {
   // **************** POST METHODS *******************
   // *************************************************
 
-  async sendSingle(dto: SendTransactionDto): Promise<TransactionEntity | null> {
+  async sendSingle(
+    dto: SendTransactionDto,
+    sender: string,
+  ): Promise<TransactionEntity | null> {
     try {
-      const entityData = await this.validateTransaction(dto);
+      const entityData = await this.validateTransaction(dto, sender);
       if (!entityData) return null;
       return await this.transactionRepository.create(entityData);
     } catch (error) {
@@ -157,7 +159,10 @@ export class TransactionService {
     }
   }
 
-  async sendBatch(dtos: SendTransactionDto[]): Promise<TransactionEntity[]> {
+  async sendBatch(
+    dtos: SendTransactionDto[],
+    sender: string,
+  ): Promise<TransactionEntity[]> {
     try {
       if (!dtos || !Array.isArray(dtos) || dtos.length === 0) {
         throw new BadRequestException(
@@ -174,7 +179,7 @@ export class TransactionService {
       const entities: Partial<TransactionEntity>[] = [];
 
       for (const dto of dtos) {
-        const entityData = await this.validateTransaction(dto);
+        const entityData = await this.validateTransaction(dto, sender);
         if (entityData) {
           entities.push(entityData);
         }
@@ -196,6 +201,7 @@ export class TransactionService {
 
   async recallTransactions(
     transactionIds: string[],
+    sender: string,
   ): Promise<{ affected: number }> {
     try {
       const ids = this.parseAndValidateTransactionIds(transactionIds);
@@ -205,6 +211,12 @@ export class TransactionService {
         id: In(ids),
         status: NoteStatus.PENDING,
       });
+
+      // check if sender is the owner of the transactions
+      const isOwner = transactions.every((tx) => tx.sender === sender);
+      if (!isOwner) {
+        throw new BadRequestException(ErrorTransaction.NotOwner);
+      }
 
       if (transactions.length !== ids.length) {
         throw new BadRequestException(ErrorTransaction.TransactionNotFound);
@@ -235,6 +247,7 @@ export class TransactionService {
 
   async consumeTransactions(
     transactionIds: string[],
+    sender: string,
   ): Promise<{ affected: number }> {
     try {
       const ids = this.parseAndValidateTransactionIds(transactionIds);
@@ -244,6 +257,12 @@ export class TransactionService {
         id: In(ids),
         status: NoteStatus.PENDING,
       });
+
+      // check if sender is the owner of the transactions
+      const isOwner = transactions.every((tx) => tx.sender === sender);
+      if (!isOwner) {
+        throw new BadRequestException(ErrorTransaction.NotOwner);
+      }
 
       if (transactions.length !== ids.length) {
         throw new BadRequestException(ErrorTransaction.TransactionNotFound);
@@ -260,7 +279,7 @@ export class TransactionService {
     }
   }
 
-  async recallBatch(dto: RecallRequestDto) {
+  async recallBatch(dto: RecallRequestDto, sender: string) {
     try {
       if (!dto.items || !Array.isArray(dto.items) || dto.items.length === 0) {
         throw new BadRequestException(
@@ -272,9 +291,10 @@ export class TransactionService {
       for (const item of dto.items) {
         if (item.type === 'transaction') {
           try {
-            const affected = await this.recallTransactions([
-              item.id.toString(),
-            ]);
+            const affected = await this.recallTransactions(
+              [item.id.toString()],
+              sender,
+            );
             results.push({
               type: 'transaction',
               id: item.id,
@@ -314,14 +334,15 @@ export class TransactionService {
 
   private async validateTransaction(
     dto: SendTransactionDto,
+    sender: string,
   ): Promise<Partial<TransactionEntity> | null> {
     try {
       // Validate addresses
-      validateAddress(dto.sender, 'sender');
+      validateAddress(sender, 'sender');
       validateAddress(dto.recipient, 'recipient');
 
       // Normalize addresses
-      const normalizedSender = normalizeAddress(dto.sender);
+      const normalizedSender = normalizeAddress(sender);
       const normalizedRecipient = normalizeAddress(dto.recipient);
 
       // Check if sender and recipient are different

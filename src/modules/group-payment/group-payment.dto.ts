@@ -27,18 +27,6 @@ export class CreateGroupDto {
   name: string;
 
   @ApiProperty({
-    description: 'Owner address',
-    example: '0x1626bd9a976e21100006fc561b6b09',
-  })
-  @IsString()
-  @IsNotEmpty()
-  @Matches(/^0x[0-9a-fA-F]+$/, {
-    message: 'ownerAddress must be a valid hex address starting with 0x',
-  })
-  @MinLength(3, { message: 'ownerAddress is too short' })
-  ownerAddress: string;
-
-  @ApiProperty({
     description: 'Member addresses',
     type: [String],
     example: [
@@ -59,18 +47,6 @@ export class CreateGroupDto {
 }
 
 export class CreateGroupPaymentDto {
-  @ApiProperty({
-    description: 'Owner address',
-    example: '0x1626bd9a976e21100006fc561b6b09',
-  })
-  @IsString()
-  @IsNotEmpty()
-  @Matches(/^0x[0-9a-fA-F]+$/, {
-    message: 'ownerAddress must be a valid hex address starting with 0x',
-  })
-  @MinLength(3, { message: 'ownerAddress is too short' })
-  ownerAddress: string;
-
   @ApiProperty({
     description: 'Token address or symbol',
     example: '0x1626bd9a976e21100006fc561b6b09',

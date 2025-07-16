@@ -45,14 +45,6 @@ export class SendTransactionDto {
   @ApiProperty({ example: '0x1626bd9a976e21100006fc561b6b09' })
   @IsString()
   @Matches(/^0x[0-9a-fA-F]+$/, {
-    message: 'sender must be a valid hex address starting with 0x',
-  })
-  @MinLength(3, { message: 'sender address is too short' })
-  sender: string;
-
-  @ApiProperty({ example: '0x1626bd9a976e21100006fc561b6b09' })
-  @IsString()
-  @Matches(/^0x[0-9a-fA-F]+$/, {
     message: 'recipient must be a valid hex address starting with 0x',
   })
   @MinLength(3, { message: 'recipient address is too short' })

@@ -4,7 +4,6 @@ import {
   AddressBookDto,
   AddressBookNameDuplicateDto,
 } from './address-book.dto';
-import { ErrorAddressBook } from 'src/common/enums/errors';
 import { handleError } from 'src/common/utils/errors';
 import {
   validateAddress,
@@ -14,6 +13,7 @@ import {
   validateDifferentAddresses,
   sanitizeString,
 } from 'src/common/utils/validation.util';
+import { ErrorAddressBook } from 'src/common/constants/errors';
 
 @Injectable()
 export class AddressBookService {
@@ -83,10 +83,10 @@ export class AddressBookService {
   // *************************************************
   // **************** POST METHODS ******************
   // *************************************************
-  async createNewAddressBookEntry(dto: AddressBookDto) {
+  async createNewAddressBookEntry(dto: AddressBookDto, userAddress: string) {
     try {
       // Validate all inputs
-      validateAddress(dto.userAddress, 'userAddress');
+      validateAddress(userAddress, 'userAddress');
       validateAddress(dto.address, 'address');
       validateName(dto.name, 'name');
       validateCategory(dto.category, 'category');
@@ -96,7 +96,7 @@ export class AddressBookService {
       }
 
       // Normalize addresses
-      const normalizedUserAddress = normalizeAddress(dto.userAddress);
+      const normalizedUserAddress = normalizeAddress(userAddress);
       const normalizedAddress = normalizeAddress(dto.address);
       const normalizedToken = dto.token
         ? normalizeAddress(dto.token)

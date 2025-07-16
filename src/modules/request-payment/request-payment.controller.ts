@@ -1,20 +1,27 @@
-import { Body, Controller, Get, Post, Put, Param, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  Put,
+  Param,
+  UseGuards,
+  Req,
+} from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
   ApiResponse,
   ApiBody,
-  ApiHeader,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { RequestPaymentService } from './request-payment.service';
 import { CreateRequestPaymentDto } from './request-payment.dto';
+import { WalletAuthGuard } from '../wallet-auth/wallet-auth.guard';
+import { RequestWithWalletAuth } from 'src/common/interfaces';
 
 @ApiTags('Request Payment')
-@ApiHeader({
-  name: 'x-api-key',
-  description: 'API Key for authentication',
-  required: true,
-})
+@ApiBearerAuth()
 @Controller('request-payment')
 export class RequestPaymentController {
   constructor(private readonly service: RequestPaymentService) {}
@@ -24,10 +31,11 @@ export class RequestPaymentController {
   // *************************************************
 
   @Get()
+  @UseGuards(WalletAuthGuard)
   @ApiOperation({ summary: 'Get all pending and accepted requests for user' })
   @ApiResponse({ status: 200, description: 'List of requests' })
-  async getAllPendingRequest(@Query('userAddress') userAddress: string) {
-    return this.service.getRequests(userAddress);
+  async getAllPendingRequest(@Req() req: RequestWithWalletAuth) {
+    return this.service.getRequests(req.walletAuth.walletAddress);
   }
 
   // *************************************************
@@ -38,7 +46,7 @@ export class RequestPaymentController {
   @ApiOperation({ summary: 'Create a new payment request' })
   @ApiResponse({ status: 201, description: 'Request created' })
   @ApiBody({ type: CreateRequestPaymentDto })
-  async create(@Body() dto: CreateRequestPaymentDto) {
+  async createPendingRequest(@Body() dto: CreateRequestPaymentDto) {
     return this.service.createRequest(dto);
   }
 
@@ -47,22 +55,18 @@ export class RequestPaymentController {
   // *************************************************
 
   @Put(':id/accept')
+  @UseGuards(WalletAuthGuard)
   @ApiOperation({ summary: 'Accept a pending request' })
   @ApiResponse({ status: 200, description: 'Request accepted' })
-  async accept(
-    @Param('id') id: number,
-    @Query('userAddress') userAddress: string,
-  ) {
-    return this.service.acceptRequest(id, userAddress);
+  async accept(@Param('id') id: number, @Req() req: RequestWithWalletAuth) {
+    return this.service.acceptRequest(id, req.walletAuth.walletAddress);
   }
 
   @Put(':id/deny')
+  @UseGuards(WalletAuthGuard)
   @ApiOperation({ summary: 'Deny a pending request' })
   @ApiResponse({ status: 200, description: 'Request denied' })
-  async deny(
-    @Param('id') id: number,
-    @Query('userAddress') userAddress: string,
-  ) {
-    return this.service.denyRequest(id, userAddress);
+  async deny(@Param('id') id: number, @Req() req: RequestWithWalletAuth) {
+    return this.service.denyRequest(id, req.walletAuth.walletAddress);
   }
 }

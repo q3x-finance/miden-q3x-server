@@ -1,21 +1,27 @@
-import { Body, Controller, Get, Post, Query, Put } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  Put,
+  UseGuards,
+  Req,
+} from '@nestjs/common';
 import { TransactionService } from './transaction.service';
 import { SendTransactionDto, RecallRequestDto } from './transaction.dto';
 import {
+  ApiBearerAuth,
   ApiBody,
-  ApiHeader,
   ApiOperation,
   ApiQuery,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { WalletAuthGuard } from '../wallet-auth/wallet-auth.guard';
+import { RequestWithWalletAuth } from 'src/common/interfaces';
 
 @ApiTags('Transactions')
-@ApiHeader({
-  name: 'x-api-key',
-  description: 'API Key for authentication',
-  required: true,
-})
+@ApiBearerAuth()
 @Controller('/transactions')
 export class TransactionController {
   constructor(private readonly transactionService: TransactionService) {}
@@ -24,6 +30,7 @@ export class TransactionController {
   // **************** GET METHODS ********************
   // *************************************************
   @Get('/recall-dashboard')
+  @UseGuards(WalletAuthGuard)
   @ApiOperation({
     summary: 'Get recallable transactions',
     description: 'Get recallable transactions',
@@ -32,11 +39,14 @@ export class TransactionController {
     status: 200,
     description: 'Recallable transactions fetched successfully',
   })
-  async getRecallable(@Query('userAddress') userAddress: string) {
-    return this.transactionService.getRecallDashboardData(userAddress);
+  async getRecallable(@Req() req: RequestWithWalletAuth) {
+    return this.transactionService.getRecallDashboardData(
+      req.walletAuth.walletAddress,
+    );
   }
 
   @Get('/consumable')
+  @UseGuards(WalletAuthGuard)
   @ApiQuery({
     name: 'userAddress',
     type: String,
@@ -50,14 +60,17 @@ export class TransactionController {
     status: 200,
     description: 'Consumable transactions fetched successfully',
   })
-  async getConsumable(@Query('userAddress') userAddress: string) {
-    return this.transactionService.getConsumableTransactions(userAddress);
+  async getConsumable(@Req() req: RequestWithWalletAuth) {
+    return this.transactionService.getConsumableTransactions(
+      req.walletAuth.walletAddress,
+    );
   }
 
   // *************************************************
   // **************** POST METHODS *******************
   // *************************************************
   @Post('/send-single')
+  @UseGuards(WalletAuthGuard)
   @ApiOperation({
     summary: 'Send notes in single transaction',
     description: 'Send notes in single transaction',
@@ -67,11 +80,18 @@ export class TransactionController {
     description: 'Transaction sent successfully',
   })
   @ApiBody({ type: SendTransactionDto })
-  async sendSingle(@Body() body: SendTransactionDto) {
-    return this.transactionService.sendSingle(body);
+  async sendSingle(
+    @Body() body: SendTransactionDto,
+    @Req() req: RequestWithWalletAuth,
+  ) {
+    return this.transactionService.sendSingle(
+      body,
+      req.walletAuth.walletAddress,
+    );
   }
 
   @Post('/send-batch')
+  @UseGuards(WalletAuthGuard)
   @ApiOperation({
     summary: 'Send notes in batch',
     description: 'Send notes in batch',
@@ -81,22 +101,36 @@ export class TransactionController {
     description: 'Transaction sent successfully',
   })
   @ApiBody({ type: SendTransactionDto, isArray: true })
-  async sendBatch(@Body() body: SendTransactionDto[]) {
-    return this.transactionService.sendBatch(body);
+  async sendBatch(
+    @Body() body: SendTransactionDto[],
+    @Req() req: RequestWithWalletAuth,
+  ) {
+    return this.transactionService.sendBatch(
+      body,
+      req.walletAuth.walletAddress,
+    );
   }
 
   // *************************************************
   // **************** PUT METHODS *******************
   // *************************************************
   @Put('/recall')
+  @UseGuards(WalletAuthGuard)
   @ApiOperation({ summary: 'Recall multiple transactions and gifts' })
   @ApiResponse({ status: 200, description: 'Batch recall result' })
   @ApiBody({ type: RecallRequestDto })
-  async recallBatch(@Body() dto: RecallRequestDto) {
-    return this.transactionService.recallBatch(dto);
+  async recallBatch(
+    @Body() dto: RecallRequestDto,
+    @Req() req: RequestWithWalletAuth,
+  ) {
+    return this.transactionService.recallBatch(
+      dto,
+      req.walletAuth.walletAddress,
+    );
   }
 
   @Put('/consume')
+  @UseGuards(WalletAuthGuard)
   @ApiOperation({
     summary: 'Consume transactions',
     description: 'Consume transactions',
@@ -112,7 +146,13 @@ export class TransactionController {
       example1: { value: ['1', '2'] },
     },
   })
-  async consumeTransactions(@Body() transactionIds: string[]) {
-    return this.transactionService.consumeTransactions(transactionIds);
+  async consumeTransactions(
+    @Body() transactionIds: string[],
+    @Req() req: RequestWithWalletAuth,
+  ) {
+    return this.transactionService.consumeTransactions(
+      transactionIds,
+      req.walletAuth.walletAddress,
+    );
   }
 }

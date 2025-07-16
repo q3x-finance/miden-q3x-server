@@ -24,6 +24,11 @@ import {
   AnalyticsTransactionStatsEntity,
   AnalyticsUserSessionEntity,
 } from 'src/modules/analytics';
+import {
+  WalletAuthChallengeEntity,
+  WalletAuthKeyEntity,
+  WalletAuthSessionEntity,
+} from 'src/modules/wallet-auth/wallet-auth.entity';
 
 @Module({
   imports: [
@@ -44,17 +49,41 @@ import {
             AuthEntity,
             TokenEntity,
             ReferralCodeEntity,
+            // *************************************************
+            // **************** TRANSACTIONS ******************
+            // *************************************************
             TransactionEntity,
+            // *************************************************
+            // **************** ADDRESS BOOK ******************
+            // *************************************************
             AddressBookEntity,
+            // *************************************************
+            // **************** REQUEST PAYMENT ***************
+            // *************************************************
             RequestPaymentEntity,
+            // *************************************************
+            // **************** GIFT ***************************
+            // *************************************************
             GiftEntity,
+            // *************************************************
+            // **************** GROUP PAYMENT ******************
+            // *************************************************
             GroupPaymentGroupEntity,
             GroupPaymentEntity,
             GroupPaymentMemberStatusEntity,
+            // *************************************************
+            // **************** SERVER USAGE ANALYTICS *********
+            // *************************************************
             AnalyticsEventEntity,
             AnalyticsUserSessionEntity,
             AnalyticsEndpointStatsEntity,
             AnalyticsTransactionStatsEntity,
+            // *************************************************
+            // **************** WALLET AUTH ********************
+            // *************************************************
+            WalletAuthKeyEntity,
+            WalletAuthSessionEntity,
+            WalletAuthChallengeEntity,
           ],
           // We are using migrations, synchronize should be set to false.
           synchronize: false,

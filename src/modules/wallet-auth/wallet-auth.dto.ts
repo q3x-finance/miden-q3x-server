@@ -3,18 +3,14 @@ import {
   IsString,
   IsOptional,
   IsEnum,
-  IsDateString,
   IsBoolean,
   IsObject,
-  Length,
-  Matches,
 } from 'class-validator';
 import { DeviceType } from './wallet-auth.entity';
 
 export class InitiateAuthDto {
   @ApiProperty({ description: 'Wallet address' })
   @IsString()
-  @Matches(/^0x[a-fA-F0-9]{40}$/, { message: 'Invalid wallet address format' })
   walletAddress: string;
 
   @ApiPropertyOptional({ description: 'Device fingerprint for security' })
@@ -36,12 +32,10 @@ export class InitiateAuthDto {
 export class RegisterKeyDto {
   @ApiProperty({ description: 'Wallet address' })
   @IsString()
-  @Matches(/^0x[a-fA-F0-9]{40}$/, { message: 'Invalid wallet address format' })
   walletAddress: string;
 
   @ApiProperty({ description: 'Public key for verification' })
   @IsString()
-  @Length(64, 128, { message: 'Invalid public key length' })
   publicKey: string;
 
   @ApiProperty({ description: 'Challenge code from initiate step' })
@@ -74,7 +68,6 @@ export class RegisterKeyDto {
 export class AuthenticateDto {
   @ApiProperty({ description: 'Wallet address' })
   @IsString()
-  @Matches(/^0x[a-fA-F0-9]{40}$/, { message: 'Invalid wallet address format' })
   walletAddress: string;
 
   @ApiProperty({ description: 'Public key identifier' })
@@ -104,14 +97,12 @@ export class RefreshTokenDto {
 
   @ApiProperty({ description: 'Wallet address' })
   @IsString()
-  @Matches(/^0x[a-fA-F0-9]{40}$/, { message: 'Invalid wallet address format' })
   walletAddress: string;
 }
 
 export class RevokeKeyDto {
   @ApiProperty({ description: 'Wallet address' })
   @IsString()
-  @Matches(/^0x[a-fA-F0-9]{40}$/, { message: 'Invalid wallet address format' })
   walletAddress: string;
 
   @ApiPropertyOptional({
@@ -170,14 +161,12 @@ export interface SessionInfo {
 export class GetKeysDto {
   @ApiProperty({ description: 'Wallet address' })
   @IsString()
-  @Matches(/^0x[a-fA-F0-9]{40}$/, { message: 'Invalid wallet address format' })
   walletAddress: string;
 }
 
 export class GetSessionsDto {
   @ApiProperty({ description: 'Wallet address' })
   @IsString()
-  @Matches(/^0x[a-fA-F0-9]{40}$/, { message: 'Invalid wallet address format' })
   walletAddress: string;
 
   @ApiPropertyOptional({ description: 'Include inactive sessions' })
